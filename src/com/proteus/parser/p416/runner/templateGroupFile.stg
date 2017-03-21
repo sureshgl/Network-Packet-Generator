@@ -1,0 +1,105 @@
+Top(stmts)::=<<
+<stmts :{ item |<item><\n>}>
+>>
+
+error(errorlist) ::= <<
+enum  error{
+<trunc(errorlist) :{errorname | 
+  <errorname>,}>
+  <last(errorlist)>
+};<\n>
+>>
+
+headers(headerlist) ::= <<
+<headerlist :{ item |<item><\n>}>
+>>
+
+
+typedef(type, bvtype, length, name) ::= << 
+typedef <type> \< <bvtype> \< <length> > > <name>;
+>>
+
+PacketHeader(fieldsMap,parserApi) ::=<<
+class PacketHeader {
+	<fields(fieldsMap)>
+	<parserApi>
+};
+>>
+
+parserApi(stmts)::=<<
+string randomize(){
+	std::stringstream ss;
+	ss \<\< "{";
+	<stmts :{ item |<item><\n>}>
+	ss \<\< "}";
+	return ss.str();
+}
+>>
+
+classDef(classname,extendedClassList,fieldsMap) ::= <<
+class <classname> <extendedClassList :{ extendedClass |: public <extendedClass>}> {
+	<fields(fieldsMap)>
+	<constructor(classname,fieldsMap)>
+	<getJsonApi(fieldsMap)>
+	<getValueApi()>
+};<\n>
+>>
+
+fields(fieldsMap)::=<<
+public:
+  <fieldsMap.keys:{k |
+<fieldsMap.(k)> <k>;<\n>}>
+>>
+
+constructor(classname,fieldsMap)::=<<
+  <classname>(rand_obj_base* parent = NULL) :
+    rand_obj_base(parent),
+<trunc(fieldsMap.keys):{k |
+    <k>(this,"<k>"),<\n>}>    <last(fieldsMap.keys):{k |<k>(this,"<k>")}>
+ >>
+
+getJsonApi(fieldsMap)::=<<
+string getJson(){
+std::stringstream ss;
+    ss \<\< "{";
+    <trunc(fieldsMap.keys):{k |ss \<\< "\"<k>\" :";
+ss \<\< std::hex \<\< <k>.getValue();
+ss \<\< ",";<\n>}>  <last(fieldsMap.keys):{k |   ss \<\< "\"<k>\" :";
+	ss \<\< std::hex \<\< <k>.getValue();}>
+    ss \<\< "}";
+    return ss.str();
+}
+ >>
+ 
+getValueApi()::=<<
+string getValue(){
+	return getJson();
+}
+>>
+ 
+extractObj(extractType,extractTypeObj) ::= <<
+<extractTypeObj>.randomize();
+ss \<\< "\"<extractType>\" :";
+ss \<\< <extractTypeObj>.getJson();
+>>
+
+
+ifCond(objecttype,select) ::= <<
+<objecttype>.getValue() == <select>
+>>
+
+ifObj(conditions,stmts) ::=<<
+if(<trunc(conditions) :{condition | <condition> &&}> <last(conditions)>){
+	<stmts :{ item |<item><\n>}>
+}
+>>
+
+elseObj(stmts,hasif,ifObj)::=<<
+else 
+<if(hasif)>
+<ifObj>
+<else> {
+	<stmts :{ item |<item><\n>}>
+}
+<endif>	
+>>
